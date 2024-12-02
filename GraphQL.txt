@@ -1,0 +1,78 @@
+
+
+type Student {
+  id: ID
+  name: String
+  age: Int
+  email: String
+  address: String
+}
+
+type Query {
+  getStudents: [Student]
+}
+
+
+
+import graphql.schema.DataFetchingEnvironment;
+import java.util.ArrayList;
+import java.util.List;
+
+public class StudentResolver {
+
+    public List<Student> getStudents(DataFetchingEnvironment environment) {
+        // Fetch fields requested by the API caller
+        List<String> requestedFields = environment.getSelectionSet().get().keySet();
+
+        // If no fields are specified, fetch all columns
+        boolean isAllFieldsRequested = requestedFields.isEmpty();
+
+        // Mock data for demonstration
+        List<Student> students = new ArrayList<>();
+        students.add(new Student(1, "Alice", 20, "alice@example.com", "123 Street"));
+        students.add(new Student(2, "Bob", 22, "bob@example.com", "456 Avenue"));
+
+        // Return students based on requested fields
+        if (isAllFieldsRequested) {
+            return students; // All fields will be serialized by GraphQL
+        } else {
+            // Return only requested fields
+            return students.stream()
+                    .map(student -> filterFields(student, requestedFields))
+                    .toList();
+        }
+    }
+
+    private Student filterFields(Student student, List<String> requestedFields) {
+        // Example: Filter fields (e.g., set null for unrequested fields)
+        Student filteredStudent = new Student();
+        if (requestedFields.contains("id")) filteredStudent.setId(student.getId());
+        if (requestedFields.contains("name")) filteredStudent.setName(student.getName());
+        if (requestedFields.contains("age")) filteredStudent.setAge(student.getAge());
+        if (requestedFields.contains("email")) filteredStudent.setEmail(student.getEmail());
+        if (requestedFields.contains("address")) filteredStudent.setAddress(student.getAddress());
+        return filteredStudent;
+    }
+}
+
+
+
+@Bean
+public GraphQLSchema schema() {
+    return GraphQLSchema.newSchema()
+        .query(GraphQLObjectType.newObject()
+            .name("Query")
+            .field(GraphQLFieldDefinition.newFieldDefinition()
+                .name("getStudents")
+                .type(new GraphQLList(StudentType)) // Use a custom type for "Student"
+                .dataFetcher(new StudentResolver()::getStudents)
+                .build())
+            .build())
+        .build();
+}
+
+
+
+
+
+
